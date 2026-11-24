@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://pinlyft.github.io/sitemap.xml
