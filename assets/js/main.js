@@ -130,3 +130,49 @@ function enableMetaPixelAfterConsent() {
   window.fbq('track', 'PageView');
 }
 */
+
+// Native-scroll choreography. No wheel interception or synthetic scroll positions.
+(() => {
+  const section = document.querySelector('.scroll-story');
+  if (!section) return;
+  const visual = section.querySelector('.story-visual');
+  const chapters = [...section.querySelectorAll('[data-chapter]')];
+  const counter = section.querySelector('.scene-counter');
+  const hero = document.querySelector('.hero-copy');
+  const motion = window.matchMedia('(prefers-reduced-motion: reduce)');
+  const desktop = window.matchMedia('(min-width: 701px)');
+  let scheduled = false;
+  let active = -1;
+  function paint() {
+    scheduled = false;
+    const animated = !motion.matches && desktop.matches;
+    let next = 0;
+    if (animated) {
+      const centre = window.innerHeight * 0.55;
+      let closest = Infinity;
+      chapters.forEach((chapter, index) => {
+        const box = chapter.getBoundingClientRect();
+        const distance = Math.abs(box.top + box.height * 0.5 - centre);
+        if (distance < closest) { closest = distance; next = index; }
+      });
+    }
+    if (next !== active) {
+      active = next;
+      visual.dataset.scene = String(next);
+      counter.textContent = String(next + 1).padStart(2, '0') + ' / 04';
+    }
+    if (hero) {
+      const progress = animated ? Math.min(window.scrollY / 650, 1) : 0;
+      hero.style.transform = 'translateY(' + (progress * -18) + 'px)';
+      hero.style.opacity = String(1 - progress * 0.12);
+    }
+  }
+  function requestPaint() {
+    if (!scheduled) { scheduled = true; requestAnimationFrame(paint); }
+  }
+  window.addEventListener('scroll', requestPaint, {passive:true});
+  window.addEventListener('resize', requestPaint, {passive:true});
+  motion.addEventListener('change', requestPaint);
+  desktop.addEventListener('change', requestPaint);
+  paint();
+})();
