@@ -5,7 +5,7 @@
    - clarityProjectId: Microsoft Clarity project ID.
    - metaPixelId: Meta Pixel (dataset) ID, digits only. Leave "" to keep the Pixel off. */
 const TRACKING = Object.freeze({
-  ga4MeasurementId: "",
+  ga4MeasurementId: "G-SKXHN88BCW",
   clarityProjectId: "zj68pkfoz3",
   metaPixelId: ""
 });
