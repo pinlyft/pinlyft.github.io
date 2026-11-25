@@ -8,6 +8,7 @@ const CONFIG = Object.freeze({
 
 (() => {
   "use strict";
+  const IS_CA = document.documentElement.dataset.country === "CA";
   const message = "Hi Siddharth, I own a clinic in ___ and want to know about the 14-day Enquiry Sprint.";
   const waNumber = CONFIG.whatsappNumber.replace(/\D/g, "");
   const waReady = /^91[6-9]\d{9}$/.test(waNumber);
@@ -62,13 +63,17 @@ const CONFIG = Object.freeze({
   updateRole();
   const normalizePhone = value => {
     const cleaned = value.trim().replace(/[\s()-]/g, "");
+    if (IS_CA) {
+      const digits = cleaned.replace(/^\+?1(?=\d{10}$)/, "");
+      return /^[2-9]\d{2}[2-9]\d{6}$/.test(digits) ? "+1" + digits : null;
+    }
     return /^(?:\+91)?[6-9]\d{9}$/.test(cleaned) ? "+91" + cleaned.replace(/^\+91/, "") : null;
   };
   phone.addEventListener("input", () => phone.setCustomValidity(""));
   const showFeedback = text => {
     feedbackMessage.textContent = text;
     feedback.hidden = false;
-    if (waReady) fallback.href = waURL(form.elements.clinic_name.value.trim());
+    if (waReady && !IS_CA) fallback.href = waURL(form.elements.clinic_name.value.trim());
     feedback.focus();
   };
   form.addEventListener("submit", async event => {
@@ -77,7 +82,7 @@ const CONFIG = Object.freeze({
     if (form.elements._gotcha.value) { showFeedback("We couldn't send this application. Please try again or contact us directly."); return; }
     for (const name of ["name", "clinic_name"]) form.elements[name].value = form.elements[name].value.trim();
     const normalizedPhone = normalizePhone(phone.value);
-    phone.setCustomValidity(normalizedPhone ? "" : "Enter a valid 10-digit Indian mobile number starting with 6–9, optionally with +91.");
+    phone.setCustomValidity(normalizedPhone ? "" : (IS_CA ? "Enter a valid 10-digit Canadian phone number, optionally with +1." : "Enter a valid 10-digit Indian mobile number starting with 6–9, optionally with +91."));
     if (!form.reportValidity()) return;
     if (!/^https:\/\/formspree\.io\/f\/[a-zA-Z0-9]+$/.test(CONFIG.formspreeEndpoint)) {
       showFeedback("Online applications are not connected yet. Please WhatsApp us instead, or contact @pinlyft on Instagram."); return;
@@ -87,7 +92,8 @@ const CONFIG = Object.freeze({
     const timeout = window.setTimeout(() => controller.abort(), 20000);
     const data = new FormData(form);
     data.set("phone", normalizedPhone);
-    data.set("_subject", "Pinlyft — 14-Day Enquiry Sprint application");
+    data.set("_subject", IS_CA ? "Pinlyft CANADA — 14-Day Enquiry Sprint application" : "Pinlyft — 14-Day Enquiry Sprint application");
+    data.set("market", IS_CA ? "Canada" : "India");
     data.set("privacy_policy_version", "2026-11-25");
     if (typeof window.pinlyftAttribution === "function") {
       const attribution = window.pinlyftAttribution();
@@ -97,7 +103,7 @@ const CONFIG = Object.freeze({
       const response = await fetch(CONFIG.formspreeEndpoint, {method:"POST", body:data, headers:{Accept:"application/json"}, signal:controller.signal});
       if (!response.ok) throw new Error("Submission failed");
       sent = true;
-      showFeedback("Thanks! We'll WhatsApp you within working hours (Mon–Sat, 10am–7pm).");
+      showFeedback(IS_CA ? "Thanks! Siddharth will call or text you within one business day (Mon–Fri, 9am–1pm ET)." : "Thanks! We'll WhatsApp you within working hours (Mon–Sat, 10am–7pm).");
       submit.textContent = "Application sent";
       form.querySelectorAll("input, select").forEach(field => { field.disabled = true; });
       if (typeof window.pinlyftTrack === "function") window.pinlyftTrack("generate_lead", { clinic_type: form.elements.clinic_type.value, city: form.elements.city.value, heard_from: form.elements.heard_from.value });
