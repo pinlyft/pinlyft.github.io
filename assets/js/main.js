@@ -88,7 +88,11 @@ const CONFIG = Object.freeze({
     const data = new FormData(form);
     data.set("phone", normalizedPhone);
     data.set("_subject", "Pinlyft — 14-Day Enquiry Sprint application");
-    data.set("privacy_policy_version", "2026-11-24");
+    data.set("privacy_policy_version", "2026-11-25");
+    if (typeof window.pinlyftAttribution === "function") {
+      const attribution = window.pinlyftAttribution();
+      Object.keys(attribution).forEach(key => data.set(key, attribution[key]));
+    }
     try {
       const response = await fetch(CONFIG.formspreeEndpoint, {method:"POST", body:data, headers:{Accept:"application/json"}, signal:controller.signal});
       if (!response.ok) throw new Error("Submission failed");
@@ -96,8 +100,7 @@ const CONFIG = Object.freeze({
       showFeedback("Thanks! We'll WhatsApp you within working hours (Mon–Sat, 10am–7pm).");
       submit.textContent = "Application sent";
       form.querySelectorAll("input, select").forEach(field => { field.disabled = true; });
-      // Optional Meta Pixel Lead event: uncomment only after implementing consent as described below.
-      // if (typeof window.fbq === "function") window.fbq("track", "Lead");
+      if (typeof window.pinlyftTrack === "function") window.pinlyftTrack("generate_lead", { clinic_type: form.elements.clinic_type.value, city: form.elements.city.value, heard_from: form.elements.heard_from.value });
     } catch (error) {
       showFeedback(error.name === "AbortError" ? "We couldn't confirm delivery in time. Please WhatsApp us to check before submitting again." : "We couldn't send your application. Please try again, or WhatsApp us now.");
       submit.textContent = "Try sending again";
@@ -113,23 +116,7 @@ const CONFIG = Object.freeze({
   } else if (floating) { floating.hidden = true; }
 })();
 
-/* OPTIONAL META PIXEL — DISABLED BY DEFAULT.
-   Before activation: update the Privacy Policy and add a separate optional analytics/
-   advertising consent control. Do not use the required service-contact checkbox.
-   Call this function on page load ONLY if valid prior consent exists, or after consent.
-   Uncomment the Lead event above too. No personal fields are passed to Meta.
-
-function enableMetaPixelAfterConsent() {
-  if (window.fbq) return;
-  !function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?
-  n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;
-  n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;
-  t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}
-  (window,document,'script','https://connect.facebook.net/en_US/fbevents.js');
-  window.fbq('init', '{{META_PIXEL_ID}}');
-  window.fbq('track', 'PageView');
-}
-*/
+/* Analytics, Meta Pixel and consent live in /assets/js/tracking.js. */
 
 // Native-scroll choreography. No wheel interception or synthetic scroll positions.
 (() => {
