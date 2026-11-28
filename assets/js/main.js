@@ -9,11 +9,13 @@ const CONFIG = Object.freeze({
 (() => {
   "use strict";
   const IS_CA = document.documentElement.dataset.country === "CA";
-  const message = "Hi Siddharth, I own a clinic in ___ and want to know about the 14-day Enquiry Sprint.";
+  const NICHE = document.documentElement.dataset.niche || "clinic";
+  const BUSINESS = {clinic:"a clinic", solar:"a rooftop solar company", hvac:"an HVAC company"}[NICHE] || "a business";
+  const message = "Hi Siddharth, I own " + BUSINESS + " in ___ and want to know about the 14-day Enquiry Sprint.";
   const waNumber = CONFIG.whatsappNumber.replace(/\D/g, "");
   const waReady = /^91[6-9]\d{9}$/.test(waNumber);
   const emailReady = /^[^\s@{}]+@[^\s@{}]+\.[^\s@{}]+$/.test(CONFIG.email);
-  const waURL = (clinic = "") => "https://wa.me/" + waNumber + "?text=" + encodeURIComponent(message + (clinic ? " My clinic is " + clinic + "." : ""));
+  const waURL = (clinic = "") => "https://wa.me/" + waNumber + "?text=" + encodeURIComponent(message + (clinic ? " My business is " + clinic + "." : ""));
   const contactHelp = document.querySelector("#contact-help");
   document.querySelectorAll("[data-year]").forEach(el => { el.textContent = new Date().getFullYear(); });
   document.querySelectorAll("[data-whatsapp]").forEach(link => {
@@ -54,7 +56,7 @@ const CONFIG = Object.freeze({
   const fallback = document.querySelector("#form-whatsapp");
   const patientNotice = document.querySelector("#patient-message");
   let busy = false, sent = false;
-  const isPatient = () => form.elements.role.value === "Patient";
+  const isPatient = () => ["Patient", "Homeowner"].includes(form.elements.role.value);
   const updateRole = () => {
     patientNotice.hidden = !isPatient();
     submit.disabled = busy || sent || isPatient();
@@ -92,7 +94,8 @@ const CONFIG = Object.freeze({
     const timeout = window.setTimeout(() => controller.abort(), 20000);
     const data = new FormData(form);
     data.set("phone", normalizedPhone);
-    data.set("_subject", IS_CA ? "Pinlyft CANADA — 14-Day Enquiry Sprint application" : "Pinlyft — 14-Day Enquiry Sprint application");
+    data.set("_subject", "Pinlyft " + (IS_CA ? "CANADA " : "") + (NICHE === "clinic" ? "" : NICHE.toUpperCase() + " ") + "— 14-Day Enquiry Sprint application");
+    data.set("niche", NICHE);
     data.set("market", IS_CA ? "Canada" : "India");
     data.set("privacy_policy_version", "2026-11-25");
     if (typeof window.pinlyftAttribution === "function") {
