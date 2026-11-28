@@ -56,10 +56,40 @@ const CONFIG = Object.freeze({
   const fallback = document.querySelector("#form-whatsapp");
   const patientNotice = document.querySelector("#patient-message");
   let busy = false, sent = false;
-  const isPatient = () => ["Patient", "Homeowner"].includes(form.elements.role.value);
+  const customerText = patientNotice ? patientNotice.textContent : "";
+  const BLOCKED = {
+    "Patient": customerText, "Homeowner": customerText,
+    "Employee / sales agent": "This form is for company owners and managers. Please share this page with your owner or director.",
+    "Employee / technician": "This form is for company owners and managers. Please share this page with your owner.",
+    "Job seeker": "We're not hiring right now. This form is only for company owners and managers."
+  };
+  const roleValue = () => (form.elements.role ? form.elements.role.value : "");
+  const isPatient = () => Object.prototype.hasOwnProperty.call(BLOCKED, roleValue());
   const updateRole = () => {
+    if (isPatient()) patientNotice.textContent = BLOCKED[roleValue()];
     patientNotice.hidden = !isPatient();
     submit.disabled = busy || sent || isPatient();
+  };
+  const val = name => (form.elements[name] ? form.elements[name].value : "");
+  // Internal lead score for routing only (never shown to the visitor).
+  const leadScore = () => {
+    const owner = /^Owner/.test(roleValue());
+    const otherArea = /^Other/.test(val("city"));
+    if (NICHE === "solar") {
+      const registered = /^Registered/.test(val("vendor_status"));
+      const small = val("volume") === "0–5";
+      if (owner && registered && !small && !otherArea) return "HOT";
+      if (val("vendor_status") === "Not registered" || otherArea || (small && !registered)) return "CHECK";
+      return "WARM";
+    }
+    if (NICHE === "hvac") {
+      const solo = val("volume") === "Just me";
+      const hrsp = /^Yes/.test(val("hrsp_status"));
+      if (owner && !solo && !otherArea && (hrsp || val("tssa") === "Yes")) return "HOT";
+      if (otherArea || (solo && !hrsp)) return "CHECK";
+      return "WARM";
+    }
+    return "";
   };
   form.querySelectorAll('[name="role"]').forEach(radio => radio.addEventListener("change", updateRole));
   updateRole();
@@ -94,8 +124,10 @@ const CONFIG = Object.freeze({
     const timeout = window.setTimeout(() => controller.abort(), 20000);
     const data = new FormData(form);
     data.set("phone", normalizedPhone);
-    data.set("_subject", "Pinlyft " + (IS_CA ? "CANADA " : "") + (NICHE === "clinic" ? "" : NICHE.toUpperCase() + " ") + "— 14-Day Enquiry Sprint application");
+    const score = leadScore();
+    data.set("_subject", "Pinlyft " + (IS_CA ? "CANADA " : "") + (NICHE === "clinic" ? "" : NICHE.toUpperCase() + " ") + (score ? "[" + score + "] " : "") + "— 14-Day Enquiry Sprint application — " + val("city"));
     data.set("niche", NICHE);
+    if (score) data.set("lead_score", score);
     data.set("market", IS_CA ? "Canada" : "India");
     data.set("privacy_policy_version", "2026-11-25");
     if (typeof window.pinlyftAttribution === "function") {
@@ -109,7 +141,7 @@ const CONFIG = Object.freeze({
       showFeedback(IS_CA ? "Thanks! Siddharth will call or text you within one business day (Mon–Fri, 9am–1pm ET)." : "Thanks! We'll WhatsApp you within working hours (Mon–Sat, 10am–7pm).");
       submit.textContent = "Application sent";
       form.querySelectorAll("input, select").forEach(field => { field.disabled = true; });
-      if (typeof window.pinlyftTrack === "function") window.pinlyftTrack("generate_lead", { clinic_type: form.elements.clinic_type.value, city: form.elements.city.value, heard_from: form.elements.heard_from.value });
+      if (typeof window.pinlyftTrack === "function") window.pinlyftTrack("generate_lead", { niche: NICHE, market: IS_CA ? "CA" : "IN", lead_score: score || "n/a", role: roleValue(), clinic_type: form.elements.clinic_type.value, city: form.elements.city.value, heard_from: form.elements.heard_from.value });
     } catch (error) {
       showFeedback(error.name === "AbortError" ? "We couldn't confirm delivery in time. Please WhatsApp us to check before submitting again." : "We couldn't send your application. Please try again, or WhatsApp us now.");
       submit.textContent = "Try sending again";

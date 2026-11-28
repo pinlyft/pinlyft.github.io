@@ -90,7 +90,7 @@ const TRACKING = Object.freeze({
   function showBar() {
     const bar = document.createElement("div");
     bar.className = "consent-bar"; bar.setAttribute("role", "region"); bar.setAttribute("aria-label", "Analytics choice");
-    bar.innerHTML = '<p>We use analytics (Google Analytics and Microsoft Clarity) to see which pages help clinic owners and to fix what doesn\'t. No ads tracking without your OK. <a href="/privacy.html#cookies">Privacy Policy</a></p><div class="consent-actions"><button type="button" class="button secondary" data-consent="denied">No thanks</button><button type="button" class="button" data-consent="granted">Accept analytics</button></div>';
+    bar.innerHTML = '<p>We use analytics (Google Analytics and Microsoft Clarity) to see which pages help business owners and to fix what doesn\'t. No ads tracking without your OK. <a href="/privacy.html#cookies">Privacy Policy</a></p><div class="consent-actions"><button type="button" class="button secondary" data-consent="denied">No thanks</button><button type="button" class="button" data-consent="granted">Accept analytics</button></div>';
     bar.addEventListener("click", (event) => {
       const choice = event.target.getAttribute && event.target.getAttribute("data-consent");
       if (!choice) return;
